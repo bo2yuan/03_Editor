@@ -67,6 +67,7 @@ void CMy03_EditorView::OnDraw(CDC* pDC)
 	// 窗口重绘之前要保存当前字符串
 	MyString* pMystr = new MyString(str, m_point);
 	pDoc->m_obArray.Add(pMystr);
+	str.Empty();
 
 	int count;
 

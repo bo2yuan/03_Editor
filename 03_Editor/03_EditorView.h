@@ -47,9 +47,7 @@ public:
 	CPoint m_point;
 	afx_msg void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags);
 	CString str;
-	CMetaFileDC m_dcMetaFile;
-	afx_msg void OnFileSave();
-	afx_msg void OnFileOpen();
+
 };
 
 #ifndef _DEBUG  // 03_EditorView.cpp 中的调试版本

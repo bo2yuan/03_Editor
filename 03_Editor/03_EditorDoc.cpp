@@ -16,6 +16,7 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+#include "MyString.h"
 
 // CMy03_EditorDoc
 
@@ -58,10 +59,25 @@ void CMy03_EditorDoc::Serialize(CArchive& ar)
 	if (ar.IsStoring())
 	{
 		// TODO: 在此添加存储代码
+		int count = m_obArray.GetSize();
+		ar << count;
+		for (int i = 0; i < count; i++) {
+			ar << m_obArray.GetAt(i);
+		}
 	}
 	else
 	{
 		// TODO: 在此添加加载代码
+		int count;
+		MyString* pMyString;
+
+		ar >> count;
+
+		for (int i = 0; i < count; i++)
+		{
+			ar >> pMyString;
+			m_obArray.Add(pMyString);
+		}
 	}
 }
 
@@ -135,3 +151,18 @@ void CMy03_EditorDoc::Dump(CDumpContext& dc) const
 
 
 // CMy03_EditorDoc 命令
+
+
+void CMy03_EditorDoc::DeleteContents()
+{
+	// TODO: 在此添加专用代码和/或调用基类
+	int nCount;
+	nCount = m_obArray.GetSize();
+	/* 删除一个元素之后，后面的元素会向前补位，倒序删除数据不会移动位置，删除不会出错 */
+	while (nCount--)
+	{
+		delete m_obArray.GetAt(nCount);
+		m_obArray.RemoveAt(nCount);
+	}
+	CDocument::DeleteContents();
+}

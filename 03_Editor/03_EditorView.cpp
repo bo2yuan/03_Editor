@@ -15,6 +15,7 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+#include "MyString.h"
 
 
 // CMy03_EditorView
@@ -29,8 +30,8 @@ BEGIN_MESSAGE_MAP(CMy03_EditorView, CView)
 	ON_WM_CREATE()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_CHAR()
-	ON_COMMAND(ID_FILE_SAVE, &CMy03_EditorView::OnFileSave)
-	ON_COMMAND(ID_FILE_OPEN, &CMy03_EditorView::OnFileOpen)
+	//ON_COMMAND(ID_FILE_SAVE, &CMy03_EditorView::OnFileSave)
+	//ON_COMMAND(ID_FILE_OPEN, &CMy03_EditorView::OnFileOpen)
 END_MESSAGE_MAP()
 
 // CMy03_EditorView 构造/析构
@@ -39,7 +40,7 @@ CMy03_EditorView::CMy03_EditorView()
 	: m_point(0)
 	, str(_T(""))
 {
-	m_dcMetaFile.Create();// 创建内存的原文件
+	//m_dcMetaFile.Create();// 创建内存的原文件
 	// TODO: 在此处添加构造代码
 
 }
@@ -62,14 +63,19 @@ void CMy03_EditorView::OnDraw(CDC* pDC)
 {
 	CMy03_EditorDoc* pDoc = GetDocument();
 	ASSERT_VALID(pDoc);
-	HMETAFILE hmetafile;
-	hmetafile = m_dcMetaFile.Close(); // 关闭原文件DC 
-	pDC->PlayMetaFile(hmetafile);  // 返回原文件句柄
-	m_dcMetaFile.Create();
-	m_dcMetaFile.PlayMetaFile(hmetafile);// 保存上一次绘画的图案  
-	DeleteMetaFile(hmetafile);  // 删除原文件句柄，一定要关闭，否则出错 
-
 	// TODO: 在此处为本机数据添加绘制代码
+	// 窗口重绘之前要保存当前字符串
+	MyString* pMystr = new MyString(str, m_point);
+	pDoc->m_obArray.Add(pMystr);
+
+	int count;
+
+	count = pDoc->m_obArray.GetSize();
+
+	for (int i = 0; i < count; i++)
+	{
+		((MyString*)pDoc->m_obArray.GetAt(i))->Draw(pDC);
+	}
 }
 
 
@@ -142,13 +148,15 @@ int CMy03_EditorView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 void CMy03_EditorView::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	CMy03_EditorDoc* pDoc = GetDocument();
+	MyString* pMystr = new MyString(str, m_point);
+	pDoc->m_obArray.Add(pMystr);
 
-	SetCaretPos(point); //移动插入符
-
-	//保存点击坐标
 	m_point = point;
+	SetCaretPos(point); //移动插入符
+	//保存点击坐标
+	ShowCaret();
 	//清空
-
 	str = TEXT("");
 	str.Empty();
 
@@ -160,32 +168,31 @@ void CMy03_EditorView::OnLButtonDown(UINT nFlags, CPoint point)
 void CMy03_EditorView::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-
+	
 	//str += (TCHAR)nChar;
 	CClientDC dc(this);
 	CFont font;
 	//font.CreatePointFont(200, "宋体", NULL);// 创建字体
 	//CFont *pOldFont = dc.SelectObject(&font);	// 将字体选单设备描述表中，在pOld中
 	//m_dcMetaFile.SelectObject(&font);	// 将字体选单设备描述表中，在pOld中
-
-	//CSize size = dc.GetTextExtent(str); //获取字符串长度
-
+	
+	CMy03_EditorDoc* pDoc = GetDocument();
+	//CSize size = pDoc->m_ptrArray.GetSize();
 	//int x = m_point.x + size.cx;
 	//int y = m_point.y;
 	//SetCaretPos(CPoint(x, y));//转对象为点
+	TEXTMETRIC tm; //字体信息结构体
+
+	dc.GetTextMetrics(&tm);
 
 	if (nChar == VK_RETURN) //换行
 	{
+		// 保存上一行的字符串到MyString类
+		MyString* pMystr = new MyString(str, m_point);
+		pDoc->m_obArray.Add(pMystr);
+		m_point.y = m_point.y + 1.5 * tm.tmHeight;
+		SetCaretPos(m_point);
 		str.Empty();
-		//获取字体信息，
-		TEXTMETRIC tm; //字体信息结构体
-
-		dc.GetTextMetrics(&tm);
-
-		m_point.y = m_point.y + tm.tmHeight;
-
-
-		m_point.y = m_point.y + tm.tmHeight;
 	}
 	else if (nChar == VK_BACK) //退格
 	{
@@ -195,53 +202,25 @@ void CMy03_EditorView::OnChar(UINT nChar, UINT nRepCnt, UINT nFlags)
 		COLORREF oldColor = dc.SetTextColor(color);
 		//白色重写一次
 		dc.TextOut(m_point.x, m_point.y, str);
-		m_dcMetaFile.TextOut(m_point.x, m_point.y, str);//重写字体，即覆盖原来的字体
-		//去掉最后一个字符
 		str = str.Left(str.GetLength() - 1);
 		//恢复原来颜色
 		dc.SetTextColor(oldColor);
+		SetCaretPos(m_point);
 
 	}
 	else
 	{
 		str += (TCHAR)nChar;
 	}
+	
+
 	CSize size = dc.GetTextExtent(str); //获取字符串长度
 	int x = m_point.x + size.cx;
 	int y = m_point.y;
 	SetCaretPos(CPoint(x, y));//转对象为点
-
-
 	dc.TextOut(m_point.x, m_point.y, str);
-	//dc.SelectObject(pOldFont);	// 再用dc将其选择则回去
-
-	m_dcMetaFile.TextOut(m_point.x, m_point.y, str);//根据原鼠标点击位置输出字符
-
-	//m_dcMetaFile.SelectObject(pOldFont);	// 再用dc将其选择则回去
 
 
 	CView::OnChar(nChar, nRepCnt, nFlags);
 }
 
-
-void CMy03_EditorView::OnFileSave()
-{
-	HMETAFILE hmetaFile;// 定义句柄变量
-	hmetaFile = m_dcMetaFile.Close();
-	CopyMetaFile(hmetaFile, "zxp.txt");// 将原文件保存到指定的文件中
-	m_dcMetaFile.Create();// 重新创建原文件以备下次使用
-	DeleteMetaFile(hmetaFile);
-	// TODO: 在此添加命令处理程序代码
-	// TODO: 在此添加命令处理程序代码
-}
-
-
-void CMy03_EditorView::OnFileOpen()
-{
-	HMETAFILE hmetafile;
-	hmetafile = GetMetaFile("zxp.txt");// 打开指定的文件  
-	m_dcMetaFile.PlayMetaFile(hmetafile); // 播放原文件 
-	DeleteMetaFile(hmetafile);  // 关闭原文件
-	Invalidate();  // 引起窗口重放	
-	// TODO: 在此添加命令处理程序代码
-}
